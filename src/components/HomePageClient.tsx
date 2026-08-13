@@ -34,9 +34,9 @@ export function HomePageClient({ pages }: { pages: PageWithMedia[] }) {
   if (pagesState.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center z-10 h-full text-center">
-        <div className="mx-auto glass-panel p-14 max-w-4xl">
+        <div className="mx-auto p-14 max-w-4xl">
           <motion.h1 
-            className="font-title text-5xl md:text-7xl tracking-widest mb-8 text-white"
+            className="font-title text-7xl md:text-9xl tracking-widest mb-8 text-slate-900"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 3, ease: "easeOut" }}
@@ -45,7 +45,7 @@ export function HomePageClient({ pages }: { pages: PageWithMedia[] }) {
           </motion.h1>
 
           <motion.p 
-            className="font-body text-xl md:text-2xl text-slate-200 mb-8"
+            className="font-body text-2xl md:text-4xl text-slate-700 mb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 2, delay: 2 }}
@@ -58,7 +58,7 @@ export function HomePageClient({ pages }: { pages: PageWithMedia[] }) {
             animate={{ opacity: 1 }}
             transition={{ duration: 2, delay: 4 }}
           >
-            <Link href="/create" className="font-title text-xl md:text-2xl text-white hover:brightness-105 transition-colors duration-700 tracking-wider">
+            <Link href="/create" className="font-title text-2xl md:text-4xl text-slate-900 hover:text-slate-600 transition-colors duration-700 tracking-wider">
               Create First Page
             </Link>
           </motion.div>
