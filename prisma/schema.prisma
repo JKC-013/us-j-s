@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  text      String?
+  layoutSeed String?
+  media     Media[]
+}
+
+model Media {
+  id       String  @id @default(cuid())
+  url      String
+  type     String  // 'image' or 'video'
+  shape    String  // 'portrait', 'landscape', 'square', 'panorama', 'vertical-video', 'horizontal-video'
+  pageId   String
+  page     Page    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+}
+
