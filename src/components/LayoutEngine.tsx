@@ -20,16 +20,16 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
     }
 
     const positions = [
-      { x: '16%', y: '32%', rotate: -24 },
-      { x: '82%', y: '28%', rotate: 18 },
-      { x: '14%', y: '64%', rotate: 20 },
-      { x: '86%', y: '70%', rotate: -18 },
-      { x: '24%', y: '44%', rotate: 28 },
-      { x: '76%', y: '42%', rotate: -20 },
-      { x: '18%', y: '80%', rotate: 16 },
-      { x: '72%', y: '82%', rotate: -22 },
-      { x: '52%', y: '84%', rotate: 14 },
-      { x: '48%', y: '32%', rotate: -14 },
+      { x: '15%', y: '25%', rotate: -12 },
+      { x: '85%', y: '25%', rotate: 14 },
+      { x: '15%', y: '75%', rotate: 8 },
+      { x: '85%', y: '75%', rotate: -10 },
+      { x: '25%', y: '50%', rotate: -22 },
+      { x: '75%', y: '50%', rotate: 18 },
+      { x: '38%', y: '22%', rotate: 12 },
+      { x: '62%', y: '22%', rotate: -16 },
+      { x: '38%', y: '78%', rotate: -8 },
+      { x: '62%', y: '78%', rotate: 20 },
     ];
 
     const pos = positions[index % positions.length];

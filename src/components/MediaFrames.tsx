@@ -34,7 +34,7 @@ export function MediaFrame({ media, className = "" }: { media: MediaProps; class
   switch (media.shape) {
     case "portrait":
       return (
-        <div className={`${frameBase} ${className}`} style={{ width: 'min(260px, 26vw)', height: 'min(360px, 44vh)' }}>
+        <div className={`${frameBase} ${className}`} style={{ width: 'min(200px, 20vw)', height: 'min(280px, 34vh)' }}>
           <div className="relative w-full h-full overflow-hidden rounded-[28px]">
             {Content}
           </div>
@@ -42,7 +42,7 @@ export function MediaFrame({ media, className = "" }: { media: MediaProps; class
       );
     case "landscape":
       return (
-        <div className={`${frameBase} ${className}`} style={{ width: 'min(420px, 48vw)', height: 'min(260px, 30vh)' }}>
+        <div className={`${frameBase} ${className}`} style={{ width: 'min(280px, 28vw)', height: 'min(200px, 24vh)' }}>
           <div className="relative w-full h-full overflow-hidden rounded-[28px]">
             {Content}
           </div>
@@ -50,7 +50,7 @@ export function MediaFrame({ media, className = "" }: { media: MediaProps; class
       );
     case "square":
       return (
-        <div className={`${frameBase} ${className}`} style={{ width: 'min(300px, 32vw)', height: 'min(320px, 34vh)' }}>
+        <div className={`${frameBase} ${className}`} style={{ width: 'min(220px, 22vw)', height: 'min(220px, 26vh)' }}>
           <div className="relative w-full h-full overflow-hidden rounded-[28px]">
             {Content}
           </div>
@@ -58,7 +58,7 @@ export function MediaFrame({ media, className = "" }: { media: MediaProps; class
       );
     case "panorama":
       return (
-        <div className={`${frameBase} ${className}`} style={{ width: 'min(760px, 82vw)', height: 'min(210px, 20vh)' }}>
+        <div className={`${frameBase} ${className}`} style={{ width: 'min(500px, 60vw)', height: 'min(160px, 18vh)' }}>
           <div className="relative w-full h-full overflow-hidden rounded-[28px]">
             {Content}
           </div>
@@ -69,7 +69,7 @@ export function MediaFrame({ media, className = "" }: { media: MediaProps; class
     default:
       const isVertical = media.shape === "vertical-video";
       return (
-        <div className={`${frameBase} ${className}`} style={{ width: isVertical ? 'min(320px, 40vw)' : 'min(500px, 55vw)', height: isVertical ? 'min(460px, 52vh)' : 'min(280px, 34vh)' }}>
+        <div className={`${frameBase} ${className}`} style={{ width: isVertical ? 'min(240px, 24vw)' : 'min(320px, 32vw)', height: isVertical ? 'min(340px, 42vh)' : 'min(220px, 26vh)' }}>
           <div className="relative w-full h-full overflow-hidden rounded-[28px]">
             {Content}
           </div>
