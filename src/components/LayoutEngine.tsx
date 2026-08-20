@@ -16,20 +16,20 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   
   const getTransform = (index: number, shape: string) => {
     if (shape === "panorama") {
-      return { top: '25%', left: '50%', transform: 'translate(-50%, -50%) rotate(-4deg)' };
+      return { top: '30%', left: '50%', transform: 'translate(-50%, -50%) rotate(-4deg)' };
     }
 
     const positions = [
-      { x: '16%', y: '26%', rotate: -24 },
-      { x: '82%', y: '22%', rotate: 18 },
-      { x: '14%', y: '62%', rotate: 20 },
-      { x: '86%', y: '68%', rotate: -18 },
-      { x: '24%', y: '40%', rotate: 28 },
-      { x: '76%', y: '38%', rotate: -20 },
-      { x: '18%', y: '82%', rotate: 16 },
-      { x: '72%', y: '84%', rotate: -22 },
-      { x: '52%', y: '86%', rotate: 14 },
-      { x: '48%', y: '28%', rotate: -14 },
+      { x: '16%', y: '32%', rotate: -24 },
+      { x: '82%', y: '28%', rotate: 18 },
+      { x: '14%', y: '64%', rotate: 20 },
+      { x: '86%', y: '70%', rotate: -18 },
+      { x: '24%', y: '44%', rotate: 28 },
+      { x: '76%', y: '42%', rotate: -20 },
+      { x: '18%', y: '80%', rotate: 16 },
+      { x: '72%', y: '82%', rotate: -22 },
+      { x: '52%', y: '84%', rotate: 14 },
+      { x: '48%', y: '32%', rotate: -14 },
     ];
 
     const pos = positions[index % positions.length];
@@ -43,7 +43,7 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   };
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="absolute inset-x-0 top-[104px] bottom-0 overflow-hidden">
       <div className="absolute inset-0 bg-transparent" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.40),transparent_35%)] pointer-events-none" />
       <div className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none overflow-hidden">
