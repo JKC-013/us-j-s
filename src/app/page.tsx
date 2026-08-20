@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { HomePageClient } from "@/components/HomePageClient";
 import { Butterflies } from "@/components/Butterflies";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const pages = await prisma.page.findMany({
     include: {
