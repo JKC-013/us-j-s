@@ -18,14 +18,14 @@ export function MediaFrame({ media, className = "" }: { media: MediaProps; class
       loop
       muted
       playsInline
-      className="w-full h-full object-contain grayscale"
+      className="w-full h-full object-contain"
     />
   ) : (
     <Image
       src={media.url}
       alt="Memory"
       fill
-      className="object-contain grayscale"
+      className="object-contain"
     />
   );
 

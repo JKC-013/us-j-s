@@ -10,7 +10,7 @@ type PageWithMedia = Page & { media: Media[] };
 
 export function HomePageClient({ pages }: { pages: PageWithMedia[] }) {
   const [pagesState, setPagesState] = useState<PageWithMedia[]>(pages);
-  const [currentIndex, setCurrentIndex] = useState(pages.length > 0 ? pages.length - 1 : 0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchPage, setSearchPage] = useState("");
 
