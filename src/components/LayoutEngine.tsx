@@ -14,9 +14,12 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   // For a real masonry orbit, we'd use physics or a packing algorithm.
   // Here we use absolute positioning in a 100vw x 100vh canvas.
   
-  const getTransform = (index: number, shape: string) => {
+  const getTransform = (index: number, shape: string, totalCount: number) => {
+    const scale = totalCount <= 1 ? 1.6 : totalCount <= 3 ? 1.35 : totalCount <= 6 ? 1.15 : 1.0;
+    const scaleStr = ` scale(${scale})`;
+
     if (shape === "panorama") {
-      return { top: '30%', left: '50%', transform: 'translate(-50%, -50%) rotate(-4deg)' };
+      return { top: '30%', left: '50%', transform: `translate(-50%, -50%) rotate(-4deg)${scaleStr}` };
     }
 
     const positions = [
@@ -38,7 +41,7 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
     return {
       top: `calc(${pos.y} + ${jitter * 0.4}%)`,
       left: `calc(${pos.x} + ${jitter * 0.6}%)`,
-      transform: `translate(-50%, -50%) rotate(${pos.rotate + jitter}deg)`,
+      transform: `translate(-50%, -50%) rotate(${pos.rotate + jitter}deg)${scaleStr}`,
     };
   };
 
@@ -76,7 +79,7 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
       </div>
 
       {mediaList.map((media, i) => {
-        const style = getTransform(i, media.shape);
+        const style = getTransform(i, media.shape, mediaList.length);
         const isPanorama = media.shape === "panorama";
         
         return (
