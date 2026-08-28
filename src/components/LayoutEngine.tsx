@@ -15,44 +15,42 @@ interface LayoutEngineProps {
   layoutSeed?: string;
 }
 
-// Clean picture component with larger base dimensions and 'object-cover' to eliminate borders
+// Balanced picture component: Hits the golden mean between too small and too large
 function CleanPicture({ media, totalInColumn }: { media: MediaProps; totalInColumn: number }) {
-  // 1. Increased base sizes to make images fundamentally larger
-  let baseW = 280;
-  let baseH = 320;
+  // Moderate base dimensions
+  let baseW = 240;
+  let baseH = 280;
 
-  if (media.shape === "portrait") { baseW = 240; baseH = 360; }
-  else if (media.shape === "landscape") { baseW = 340; baseH = 240; }
-  else if (media.shape === "panorama") { baseW = 420; baseH = 180; }
+  if (media.shape === "portrait") { baseW = 210; baseH = 310; }
+  else if (media.shape === "landscape") { baseW = 300; baseH = 210; }
+  else if (media.shape === "panorama") { baseW = 360; baseH = 160; }
 
-  // 2. More aggressive scaling multipliers to take advantage of the empty space
+  // Intermediate scaling factors (The "sweet spot" middle ground)
   const multiplier = 
-    totalInColumn === 1 ? 1.4 : 
-    totalInColumn === 2 ? 1.2 : 
-    totalInColumn === 3 ? 1.0 : 
-    totalInColumn === 4 ? 0.85 : 0.7; // Even at 5 items per side, they remain large
+    totalInColumn === 1 ? 1.2 : 
+    totalInColumn === 2 ? 1.05 : 
+    totalInColumn === 3 ? 0.9 : 
+    totalInColumn === 4 ? 0.78 : 0.68;
   
   const width = Math.round(baseW * multiplier);
   const height = Math.round(baseH * multiplier);
 
   return (
     <div 
-      className="relative overflow-hidden rounded-[20px] shadow-xl"
+      className="relative overflow-hidden rounded-[20px] shadow-lg"
       style={{
         width: `${width}px`,
         height: `${height}px`,
         border: 'none',
         outline: 'none',
         backgroundColor: 'transparent',
-        transform: 'translateZ(0)', // Hardware acceleration
+        transform: 'translateZ(0)',
       }}
     >
       <Image
         src={media.url}
         alt="Memory"
         fill
-        // 3. Changed to 'object-cover' to ensure the image bleeds perfectly to the edges
-        // without leaving any empty white padding/letterboxing behind.
         className="object-cover"
         style={{ border: 'none', outline: 'none' }}
       />
@@ -67,20 +65,17 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   const rightItems = displayList.filter((_, i) => i % 2 !== 0);
 
   const getPositionStyle = (colIndex: number, totalInCol: number, isLeft: boolean) => {
-    // 4. Widened Zigzag Pattern
-    // Base is pushed slightly inward (16% and 84%), but the offset is increased to ±6%.
-    // This allows the larger images to stack tightly without corner-clipping.
-    const xBase = isLeft ? 16 : 84;
-    const xOffset = colIndex % 2 === 0 ? (isLeft ? -6 : 6) : (isLeft ? 6 : -6);
+    // Balanced zigzag offset (±5%)
+    const xBase = isLeft ? 17 : 83;
+    const xOffset = colIndex % 2 === 0 ? (isLeft ? -5 : 5) : (isLeft ? 5 : -5);
     const x = xBase + xOffset;
 
-    // Stretched Y distribution to utilize the extreme top and bottom of the screen
     let y = 50;
     if (totalInCol === 1) {
       y = 50;
     } else {
-      const startY = 15;
-      const endY = 85;
+      const startY = 18;
+      const endY = 82;
       y = startY + (colIndex / (totalInCol - 1)) * (endY - startY);
     }
 
@@ -126,7 +121,6 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
             animate={{ opacity: 1, filter: 'blur(0px)' }}
             transition={{ duration: 1.2, delay: globalIndex * 0.1, ease: "easeOut" }}
           >
-            {/* Removed internal padding wrapper to ensure no ghost borders */}
             <CleanPicture media={media} totalInColumn={leftItems.length} />
           </motion.div>
         );
