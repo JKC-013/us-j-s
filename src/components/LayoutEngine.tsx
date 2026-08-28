@@ -15,34 +15,24 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   // Here we use absolute positioning in a 100vw x 100vh canvas.
   
   const getTransform = (index: number, shape: string, totalCount: number) => {
-    // 1. Determine size scaling
+    // 1. Independent scaling for the image element itself
     const scale = totalCount <= 1 ? 1.5 : totalCount <= 3 ? 1.2 : totalCount <= 5 ? 0.95 : 0.8;
     const scaleStr = ` scale(${scale})`;
 
     if (shape === "panorama") {
-      return { top: '12%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
+      return { top: '15%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
     }
 
     const startAngle = -Math.PI / 2.5; 
     const angle = startAngle + (index / totalCount) * (2 * Math.PI);
 
-    // 2. Dynamic Orbit Expansion for Fewer Images
-    // When totalCount is low, scale is huge (1.5x), so we must push 'a' and 'b' 
-    // further out to prevent them from touching the center text box.
-    // When totalCount is high, scale is small (0.8x), so we bring them slightly inward.
-    let a = 39;
-    let b = 34;
-
-    if (totalCount === 1) {
-      a = 36; b = 32; // Single image center-top positioning safely
-    } else if (totalCount <= 3) {
-      a = 42; b = 37; // Pushed far out to protect large 1.2x images from text overlap
-    } else if (totalCount <= 5) {
-      a = 40; b = 35;
-    }
-
-    // 3. Superellipse Bounding Calculation
+    // 2. Fixed, static layout bounds for the orbit ring 
+    // Keeping 'a' and 'b' completely static guarantees images stay locked safely 
+    // within the screen boundaries, preventing any edge-cutting regardless of their size.
     const n = 4; 
+    const a = 36; // Constant horizontal perimeter (safely within 14% to 86%)
+    const b = 31; // Constant vertical perimeter (safely within 19% to 81%)
+    
     const cosT = Math.cos(angle);
     const sinT = Math.sin(angle);
     
