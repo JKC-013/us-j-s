@@ -15,25 +15,34 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   // Here we use absolute positioning in a 100vw x 100vh canvas.
   
   const getTransform = (index: number, shape: string, totalCount: number) => {
-    // 1. Slightly reduced scale for higher counts to prevent side-by-side collisions
+    // 1. Determine size scaling
     const scale = totalCount <= 1 ? 1.5 : totalCount <= 3 ? 1.2 : totalCount <= 5 ? 0.95 : 0.8;
     const scaleStr = ` scale(${scale})`;
 
     if (shape === "panorama") {
-      // Pushed panoramas higher up to keep clear of the center panel
-      return { top: '13%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
+      return { top: '12%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
     }
 
     const startAngle = -Math.PI / 2.5; 
     const angle = startAngle + (index / totalCount) * (2 * Math.PI);
 
-    // 2. Expanded Superellipse radii ('a' and 'b')
-    // Increasing these values pushes the images farther away from the center 
-    // and deeper into the screen corners, freeing up the text box entirely.
+    // 2. Dynamic Orbit Expansion for Fewer Images
+    // When totalCount is low, scale is huge (1.5x), so we must push 'a' and 'b' 
+    // further out to prevent them from touching the center text box.
+    // When totalCount is high, scale is small (0.8x), so we bring them slightly inward.
+    let a = 39;
+    let b = 34;
+
+    if (totalCount === 1) {
+      a = 36; b = 32; // Single image center-top positioning safely
+    } else if (totalCount <= 3) {
+      a = 42; b = 37; // Pushed far out to protect large 1.2x images from text overlap
+    } else if (totalCount <= 5) {
+      a = 40; b = 35;
+    }
+
+    // 3. Superellipse Bounding Calculation
     const n = 4; 
-    const a = 39; // Pushed further horizontally (Max left/right: 11% to 89%)
-    const b = 34; // Pushed further vertically (Max top/bottom: 16% to 84%)
-    
     const cosT = Math.cos(angle);
     const sinT = Math.sin(angle);
     
@@ -43,7 +52,6 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
     const x = 50 + xOffset;
     const y = 50 + yOffset;
 
-    // Distinct alternating angles to prevent corner bunching
     const rotate = (index % 2 === 0 ? 1 : -1) * (6 + (index % 4) * 5);
 
     return {
