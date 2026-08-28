@@ -15,23 +15,27 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   // Here we use absolute positioning in a 100vw x 100vh canvas.
   
   const getTransform = (index: number, shape: string, totalCount: number) => {
-    // 1. Independent scaling for the image element itself
-    const scale = totalCount <= 1 ? 1.5 : totalCount <= 3 ? 1.2 : totalCount <= 5 ? 0.95 : 0.8;
+    // 1. Precise scaling curve to prevent high-count crowding
+    const scale = 
+      totalCount <= 1 ? 1.25 : 
+      totalCount <= 3 ? 1.05 : 
+      totalCount <= 6 ? 0.88 : 0.72;
+      
     const scaleStr = ` scale(${scale})`;
 
     if (shape === "panorama") {
-      return { top: '15%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
+      return { top: '14%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
     }
 
     const startAngle = -Math.PI / 2.5; 
     const angle = startAngle + (index / totalCount) * (2 * Math.PI);
 
-    // 2. Fixed, static layout bounds for the orbit ring 
-    // Keeping 'a' and 'b' completely static guarantees images stay locked safely 
-    // within the screen boundaries, preventing any edge-cutting regardless of their size.
-    const n = 4; 
-    const a = 36; // Constant horizontal perimeter (safely within 14% to 86%)
-    const b = 31; // Constant vertical perimeter (safely within 19% to 81%)
+    // 2. Tighter Orbit Radii (a = 30, b = 25)
+    // Pulling the orbit ring inward guarantees the photos stay clear of screen edges,
+    // while the superellipse (n = 4.5) pushes them diagonally away from the center text box.
+    const n = 4.5; 
+    const a = 30; // Max left/right center at 20% and 80%
+    const b = 25; // Max top/bottom center at 25% and 75%
     
     const cosT = Math.cos(angle);
     const sinT = Math.sin(angle);
@@ -42,7 +46,8 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
     const x = 50 + xOffset;
     const y = 50 + yOffset;
 
-    const rotate = (index % 2 === 0 ? 1 : -1) * (6 + (index % 4) * 5);
+    // Small, controlled rotation angle
+    const rotate = (index % 2 === 0 ? 1 : -1) * (4 + (index % 3) * 3);
 
     return {
       top: `${y}%`,
