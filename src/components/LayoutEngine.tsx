@@ -15,32 +15,40 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   // Here we use absolute positioning in a 100vw x 100vh canvas.
   
   const getTransform = (index: number, shape: string, totalCount: number) => {
-    const scale = totalCount <= 1 ? 1.6 : totalCount <= 3 ? 1.35 : totalCount <= 6 ? 1.15 : 1.0;
+    // 1. Dynamic Scale: Shrinks slightly more at 6+ images to guarantee spacing
+    const scale = totalCount <= 1 ? 1.6 : totalCount <= 3 ? 1.25 : totalCount <= 5 ? 1.05 : 0.85;
     const scaleStr = ` scale(${scale})`;
 
     if (shape === "panorama") {
-      return { top: '18%', left: '50%', transform: `translate(-50%, -50%) rotate(-3deg)${scaleStr}` };
+      return { top: '16%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
     }
 
-    // Start angle offset to prevent the first image from hiding perfectly behind top-center
     const startAngle = -Math.PI / 2.5; 
-    
-    // Calculate the exact angle for this specific image to space them evenly in a 360-degree ring
     const angle = startAngle + (index / totalCount) * (2 * Math.PI);
 
-    // Define the orbital radius (distance from the center at 50% / 50%).
-    // Capping the radius at ~34% ensures the image centers never go past 16% or 84% on the screen,
-    // leaving a large enough margin at the screen edges so the photos do not get cut off.
-    const stagger = index % 2 === 0 ? 2 : -2;
-    const radiusX = 33 + stagger; // Horizontal distance from center
-    const radiusY = 32 - stagger; // Vertical distance from center
+    // 2. Superellipse Algorithm 
+    // n = 4 squares off the circle, pushing images deep into the corners 
+    // to give the center text box maximum breathing room.
+    const n = 4; 
+    
+    // 3. Strict Bounding Box (Max distance from center 50%)
+    // 'a' limits X between 14% and 86% (Prevents left/right edge cuts)
+    // 'b' limits Y between 19% and 81% (Prevents top/bottom edge cuts)
+    const a = 36; 
+    const b = 31; 
+    
+    const cosT = Math.cos(angle);
+    const sinT = Math.sin(angle);
+    
+    // Calculate orbital coordinates using the rounded rectangle math
+    const xOffset = a * Math.sign(cosT) * Math.pow(Math.abs(cosT), 2 / n);
+    const yOffset = b * Math.sign(sinT) * Math.pow(Math.abs(sinT), 2 / n);
 
-    // Convert polar coordinates to Cartesian percentages
-    const x = 50 + radiusX * Math.cos(angle);
-    const y = 50 + radiusY * Math.sin(angle);
+    const x = 50 + xOffset;
+    const y = 50 + yOffset;
 
-    // Deterministic organic rotation based on position in the orbit
-    const rotate = (index % 2 === 0 ? 1 : -1) * (8 + (index % 4) * 4);
+    // Organic rotation to make it feel natural
+    const rotate = (index % 2 === 0 ? 1 : -1) * (5 + (index % 4) * 4);
 
     return {
       top: `${y}%`,
