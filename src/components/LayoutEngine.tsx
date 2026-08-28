@@ -126,5 +126,6 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
           </div>
         </div>
       </motion.div>
+    </div>
   );
 }
