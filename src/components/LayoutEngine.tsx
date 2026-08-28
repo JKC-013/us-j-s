@@ -15,40 +15,36 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   // Here we use absolute positioning in a 100vw x 100vh canvas.
   
   const getTransform = (index: number, shape: string, totalCount: number) => {
-    // 1. Dynamic Scale: Shrinks slightly more at 6+ images to guarantee spacing
-    const scale = totalCount <= 1 ? 1.6 : totalCount <= 3 ? 1.25 : totalCount <= 5 ? 1.05 : 0.85;
+    // 1. Slightly reduced scale for higher counts to prevent side-by-side collisions
+    const scale = totalCount <= 1 ? 1.5 : totalCount <= 3 ? 1.2 : totalCount <= 5 ? 0.95 : 0.8;
     const scaleStr = ` scale(${scale})`;
 
     if (shape === "panorama") {
-      return { top: '16%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
+      // Pushed panoramas higher up to keep clear of the center panel
+      return { top: '13%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
     }
 
     const startAngle = -Math.PI / 2.5; 
     const angle = startAngle + (index / totalCount) * (2 * Math.PI);
 
-    // 2. Superellipse Algorithm 
-    // n = 4 squares off the circle, pushing images deep into the corners 
-    // to give the center text box maximum breathing room.
+    // 2. Expanded Superellipse radii ('a' and 'b')
+    // Increasing these values pushes the images farther away from the center 
+    // and deeper into the screen corners, freeing up the text box entirely.
     const n = 4; 
-    
-    // 3. Strict Bounding Box (Max distance from center 50%)
-    // 'a' limits X between 14% and 86% (Prevents left/right edge cuts)
-    // 'b' limits Y between 19% and 81% (Prevents top/bottom edge cuts)
-    const a = 36; 
-    const b = 31; 
+    const a = 39; // Pushed further horizontally (Max left/right: 11% to 89%)
+    const b = 34; // Pushed further vertically (Max top/bottom: 16% to 84%)
     
     const cosT = Math.cos(angle);
     const sinT = Math.sin(angle);
     
-    // Calculate orbital coordinates using the rounded rectangle math
     const xOffset = a * Math.sign(cosT) * Math.pow(Math.abs(cosT), 2 / n);
     const yOffset = b * Math.sign(sinT) * Math.pow(Math.abs(sinT), 2 / n);
 
     const x = 50 + xOffset;
     const y = 50 + yOffset;
 
-    // Organic rotation to make it feel natural
-    const rotate = (index % 2 === 0 ? 1 : -1) * (5 + (index % 4) * 4);
+    // Distinct alternating angles to prevent corner bunching
+    const rotate = (index % 2 === 0 ? 1 : -1) * (6 + (index % 4) * 5);
 
     return {
       top: `${y}%`,
