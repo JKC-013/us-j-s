@@ -16,19 +16,19 @@ interface LayoutEngineProps {
 }
 
 function CleanPicture({ media, totalInColumn }: { media: MediaProps; totalInColumn: number }) {
-  let baseW = 250;
-  let baseH = 290;
+  let baseW = 240;
+  let baseH = 280;
 
-  if (media.shape === "portrait") { baseW = 220; baseH = 320; }
-  else if (media.shape === "landscape") { baseW = 310; baseH = 220; }
-  else if (media.shape === "panorama") { baseW = 380; baseH = 170; }
+  if (media.shape === "portrait") { baseW = 210; baseH = 310; }
+  else if (media.shape === "landscape") { baseW = 300; baseH = 210; }
+  else if (media.shape === "panorama") { baseW = 360; baseH = 160; }
 
-  // Optimized sweet-spot multipliers to keep images tight yet substantial
+  // Scaled down progressively when columns are dense so they fit comfortably
   const multiplier = 
     totalInColumn === 1 ? 1.25 : 
-    totalInColumn === 2 ? 1.12 : 
-    totalInColumn === 3 ? 0.98 : 
-    totalInColumn === 4 ? 0.85 : 0.75;
+    totalInColumn === 2 ? 1.10 : 
+    totalInColumn === 3 ? 0.92 : 
+    totalInColumn === 4 ? 0.80 : 0.68;
   
   const width = Math.round(baseW * multiplier);
   const height = Math.round(baseH * multiplier);
@@ -63,17 +63,19 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   const rightItems = displayList.filter((_, i) => i % 2 !== 0);
 
   const getPositionStyle = (colIndex: number, totalInCol: number, isLeft: boolean) => {
+    // Dynamic horizontal spacing: wider staggered spread when dense to prevent bunching
     const xBase = isLeft ? 17 : 83;
-    const xOffset = colIndex % 2 === 0 ? (isLeft ? -5 : 5) : (isLeft ? 5 : -5);
+    const spreadMultiplier = totalInCol >= 4 ? 1.3 : 1.0;
+    const xOffset = (colIndex % 2 === 0 ? (isLeft ? -5 : 5) : (isLeft ? 5 : -5)) * spreadMultiplier;
     const x = xBase + xOffset;
 
     let y = 50;
     if (totalInCol === 1) {
       y = 50;
     } else {
-      // Safe margins (24% to 76%) guarantee top/bottom images are never clipped by screen bounds
-      const startY = 24;
-      const endY = 76;
+      // Dynamic vertical range: expands safely when more pictures are present
+      const startY = totalInCol >= 4 ? 18 : 22;
+      const endY = totalInCol >= 4 ? 82 : 78;
       y = startY + (colIndex / (totalInCol - 1)) * (endY - startY);
     }
 
