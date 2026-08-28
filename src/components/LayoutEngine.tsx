@@ -15,22 +15,20 @@ interface LayoutEngineProps {
   layoutSeed?: string;
 }
 
-// Balanced picture component: Hits the golden mean between too small and too large
 function CleanPicture({ media, totalInColumn }: { media: MediaProps; totalInColumn: number }) {
-  // Moderate base dimensions
-  let baseW = 240;
-  let baseH = 280;
+  let baseW = 250;
+  let baseH = 290;
 
-  if (media.shape === "portrait") { baseW = 210; baseH = 310; }
-  else if (media.shape === "landscape") { baseW = 300; baseH = 210; }
-  else if (media.shape === "panorama") { baseW = 360; baseH = 160; }
+  if (media.shape === "portrait") { baseW = 220; baseH = 320; }
+  else if (media.shape === "landscape") { baseW = 310; baseH = 220; }
+  else if (media.shape === "panorama") { baseW = 380; baseH = 170; }
 
-  // Intermediate scaling factors (The "sweet spot" middle ground)
+  // Optimized sweet-spot multipliers to keep images tight yet substantial
   const multiplier = 
-    totalInColumn === 1 ? 1.2 : 
-    totalInColumn === 2 ? 1.05 : 
-    totalInColumn === 3 ? 0.9 : 
-    totalInColumn === 4 ? 0.78 : 0.68;
+    totalInColumn === 1 ? 1.25 : 
+    totalInColumn === 2 ? 1.12 : 
+    totalInColumn === 3 ? 0.98 : 
+    totalInColumn === 4 ? 0.85 : 0.75;
   
   const width = Math.round(baseW * multiplier);
   const height = Math.round(baseH * multiplier);
@@ -65,7 +63,6 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   const rightItems = displayList.filter((_, i) => i % 2 !== 0);
 
   const getPositionStyle = (colIndex: number, totalInCol: number, isLeft: boolean) => {
-    // Balanced zigzag offset (±5%)
     const xBase = isLeft ? 17 : 83;
     const xOffset = colIndex % 2 === 0 ? (isLeft ? -5 : 5) : (isLeft ? 5 : -5);
     const x = xBase + xOffset;
@@ -74,8 +71,9 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
     if (totalInCol === 1) {
       y = 50;
     } else {
-      const startY = 18;
-      const endY = 82;
+      // Safe margins (24% to 76%) guarantee top/bottom images are never clipped by screen bounds
+      const startY = 24;
+      const endY = 76;
       y = startY + (colIndex / (totalInCol - 1)) * (endY - startY);
     }
 
