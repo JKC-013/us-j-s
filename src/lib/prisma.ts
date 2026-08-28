@@ -7,5 +7,5 @@ const libsql = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN!,
 })
 
-const adapter = new PrismaLibSQL(libsql)
+const adapter = new PrismaLibSql(libsql)
 export const prisma = new PrismaClient({ adapter })
