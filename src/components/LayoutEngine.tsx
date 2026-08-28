@@ -19,33 +19,36 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
     const scaleStr = ` scale(${scale})`;
 
     if (shape === "panorama") {
-      return { top: '20%', left: '50%', transform: `translate(-50%, -50%) rotate(-4deg)${scaleStr}` };
+      return { top: '18%', left: '50%', transform: `translate(-50%, -50%) rotate(-3deg)${scaleStr}` };
     }
 
-    // Tightly controlled perimeter coordinates avoiding the 50%/50% center zone
-    const positions = [
-      { x: '12%', y: '15%', rotate: -12 },  // 0: Top Left
-      { x: '88%', y: '15%', rotate: 14 },   // 1: Top Right
-      { x: '12%', y: '85%', rotate: 8 },    // 2: Bottom Left
-      { x: '88%', y: '85%', rotate: -10 },  // 3: Bottom Right
-      { x: '6%',  y: '50%', rotate: -22 },  // 4: Far Mid Left
-      { x: '94%', y: '50%', rotate: 18 },   // 5: Far Mid Right
-      { x: '32%', y: '8%',  rotate: 12 },   // 6: Top Mid-Left (Pushed Up)
-      { x: '68%', y: '8%',  rotate: -16 },  // 7: Top Mid-Right (Pushed Up)
-      { x: '32%', y: '92%', rotate: -8 },   // 8: Bottom Mid-Left (Pushed Down)
-      { x: '68%', y: '92%', rotate: 20 },   // 9: Bottom Mid-Right (Pushed Down)
-    ];
+    // Start angle offset to prevent the first image from hiding perfectly behind top-center
+    const startAngle = -Math.PI / 2.5; 
+    
+    // Calculate the exact angle for this specific image to space them evenly in a 360-degree ring
+    const angle = startAngle + (index / totalCount) * (2 * Math.PI);
 
-    const pos = positions[index % positions.length];
+    // Define the orbital radius (distance from the center at 50% / 50%).
+    // Capping the radius at ~34% ensures the image centers never go past 16% or 84% on the screen,
+    // leaving a large enough margin at the screen edges so the photos do not get cut off.
+    const stagger = index % 2 === 0 ? 2 : -2;
+    const radiusX = 33 + stagger; // Horizontal distance from center
+    const radiusY = 32 - stagger; // Vertical distance from center
+
+    // Convert polar coordinates to Cartesian percentages
+    const x = 50 + radiusX * Math.cos(angle);
+    const y = 50 + radiusY * Math.sin(angle);
+
+    // Deterministic organic rotation based on position in the orbit
+    const rotate = (index % 2 === 0 ? 1 : -1) * (8 + (index % 4) * 4);
 
     return {
-      top: pos.y,
-      left: pos.x,
-      // Removed jitter variables entirely for predictable spacing
-      transform: `translate(-50%, -50%) rotate(${pos.rotate}deg)${scaleStr}`,
+      top: `${y}%`,
+      left: `${x}%`,
+      transform: `translate(-50%, -50%) rotate(${rotate}deg)${scaleStr}`,
     };
   };
-
+  
   return (
     <div className="absolute inset-x-0 top-[104px] bottom-0 overflow-hidden">
       <div className="absolute inset-0 bg-transparent" />
