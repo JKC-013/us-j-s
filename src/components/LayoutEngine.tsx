@@ -15,27 +15,26 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   // Here we use absolute positioning in a 100vw x 100vh canvas.
   
   const getTransform = (index: number, shape: string, totalCount: number) => {
-    // 1. Precise scaling curve to prevent high-count crowding
+    // 1. Dynamic scale that shrinks properly as items increase
     const scale = 
-      totalCount <= 1 ? 1.25 : 
-      totalCount <= 3 ? 1.05 : 
-      totalCount <= 6 ? 0.88 : 0.72;
+      totalCount <= 1 ? 1.1 : 
+      totalCount <= 3 ? 0.95 : 
+      totalCount <= 6 ? 0.78 : 0.65;
       
     const scaleStr = ` scale(${scale})`;
 
     if (shape === "panorama") {
-      return { top: '14%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
+      return { top: '12%', left: '50%', transform: `translate(-50%, -50%) rotate(-2deg)${scaleStr}` };
     }
 
-    const startAngle = -Math.PI / 2.5; 
+    const startAngle = -Math.PI / 2.3; 
     const angle = startAngle + (index / totalCount) * (2 * Math.PI);
 
-    // 2. Tighter Orbit Radii (a = 30, b = 25)
-    // Pulling the orbit ring inward guarantees the photos stay clear of screen edges,
-    // while the superellipse (n = 4.5) pushes them diagonally away from the center text box.
-    const n = 4.5; 
-    const a = 30; // Max left/right center at 20% and 80%
-    const b = 25; // Max top/bottom center at 25% and 75%
+    // 2. Superellipse bounds tuned specifically to keep items far outside 
+    // the central text box boundary and well inside the viewport frame.
+    const n = 4.2; 
+    const a = 28; // Max X displacement (keeps centers within 22% - 78%)
+    const b = 23; // Max Y displacement (keeps centers within 27% - 73%)
     
     const cosT = Math.cos(angle);
     const sinT = Math.sin(angle);
@@ -46,8 +45,8 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
     const x = 50 + xOffset;
     const y = 50 + yOffset;
 
-    // Small, controlled rotation angle
-    const rotate = (index % 2 === 0 ? 1 : -1) * (4 + (index % 3) * 3);
+    // Controlled rotation angle so corners don't poke out of the safety box
+    const rotate = (index % 2 === 0 ? 1 : -1) * (3 + (index % 3) * 3);
 
     return {
       top: `${y}%`,
@@ -100,25 +99,32 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
             style={style as any}
             initial={{ opacity: 0, filter: 'blur(10px)' }}
             animate={{ opacity: 1, filter: 'blur(0px)' }}
-            transition={{ duration: 2, delay: i * 0.4, ease: "easeOut" }}
+            transition={{ duration: 1.5, delay: i * 0.2, ease: "easeOut" }}
           >
-            <MediaFrame media={media} className={isPanorama ? "w-full" : ""} />
+            {/* INVISIBLE SAFETY BORDER WRAPPER */}
+            {/* p-4 (16px) or p-6 (24px) creates the exact invisible buffer zone from your diagram */}
+            <div className="p-5 bg-transparent pointer-events-auto">
+              <MediaFrame media={media} className={isPanorama ? "w-full" : ""} />
+            </div>
           </motion.div>
         );
       })}
 
       <motion.div
-        className="absolute top-1/2 left-1/2 z-50 h-[min(460px,52vh)] w-[min(440px,38vw)] max-w-[440px] glass-panel p-8 transform -translate-x-1/2 -translate-y-1/2"
+        className="absolute top-1/2 left-1/2 z-50 transform -translate-x-1/2 -translate-y-1/2"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 3, delay: mediaList.length * 0.5 }}
+        transition={{ duration: 1.5, delay: mediaList.length * 0.2 }}
       >
-        <div className="h-full overflow-y-auto pr-2">
-          <p className="font-body text-lg leading-relaxed tracking-[0.02em] whitespace-pre-wrap break-words">
-            {text}
-          </p>
+        <div className="p-6 bg-transparent">
+          <div className="h-[min(420px,48vh)] w-[min(400px,36vw)] max-w-[400px] glass-panel p-8">
+            <div className="h-full overflow-y-auto pr-2">
+              <p className="font-body text-lg leading-relaxed tracking-[0.02em] whitespace-pre-wrap break-words">
+                {text}
+              </p>
+            </div>
+          </div>
         </div>
       </motion.div>
-    </div>
   );
 }
