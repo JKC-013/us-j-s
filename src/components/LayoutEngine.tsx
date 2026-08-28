@@ -19,29 +19,30 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
     const scaleStr = ` scale(${scale})`;
 
     if (shape === "panorama") {
-      return { top: '30%', left: '50%', transform: `translate(-50%, -50%) rotate(-4deg)${scaleStr}` };
+      return { top: '20%', left: '50%', transform: `translate(-50%, -50%) rotate(-4deg)${scaleStr}` };
     }
 
+    // Tightly controlled perimeter coordinates avoiding the 50%/50% center zone
     const positions = [
-      { x: '12%', y: '20%', rotate: -12 },
-      { x: '88%', y: '20%', rotate: 14 },
-      { x: '12%', y: '80%', rotate: 8 },
-      { x: '88%', y: '80%', rotate: -10 },
-      { x: '18%', y: '50%', rotate: -22 },
-      { x: '82%', y: '50%', rotate: 18 },
-      { x: '35%', y: '16%', rotate: 12 },
-      { x: '65%', y: '16%', rotate: -16 },
-      { x: '35%', y: '85%', rotate: -8 },
-      { x: '65%', y: '85%', rotate: 20 },
+      { x: '12%', y: '15%', rotate: -12 },  // 0: Top Left
+      { x: '88%', y: '15%', rotate: 14 },   // 1: Top Right
+      { x: '12%', y: '85%', rotate: 8 },    // 2: Bottom Left
+      { x: '88%', y: '85%', rotate: -10 },  // 3: Bottom Right
+      { x: '6%',  y: '50%', rotate: -22 },  // 4: Far Mid Left
+      { x: '94%', y: '50%', rotate: 18 },   // 5: Far Mid Right
+      { x: '32%', y: '8%',  rotate: 12 },   // 6: Top Mid-Left (Pushed Up)
+      { x: '68%', y: '8%',  rotate: -16 },  // 7: Top Mid-Right (Pushed Up)
+      { x: '32%', y: '92%', rotate: -8 },   // 8: Bottom Mid-Left (Pushed Down)
+      { x: '68%', y: '92%', rotate: 20 },   // 9: Bottom Mid-Right (Pushed Down)
     ];
 
     const pos = positions[index % positions.length];
-    const jitter = ((index % 3) - 1) * 2;
 
     return {
-      top: `calc(${pos.y} + ${jitter * 0.4}%)`,
-      left: `calc(${pos.x} + ${jitter * 0.6}%)`,
-      transform: `translate(-50%, -50%) rotate(${pos.rotate + jitter}deg)${scaleStr}`,
+      top: pos.y,
+      left: pos.x,
+      // Removed jitter variables entirely for predictable spacing
+      transform: `translate(-50%, -50%) rotate(${pos.rotate}deg)${scaleStr}`,
     };
   };
 
