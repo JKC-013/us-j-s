@@ -23,12 +23,13 @@ function CleanPicture({ media, totalInColumn }: { media: MediaProps; totalInColu
   else if (media.shape === "landscape") { baseW = 300; baseH = 210; }
   else if (media.shape === "panorama") { baseW = 360; baseH = 160; }
 
-  // Scaled down progressively when columns are dense so they fit comfortably
+  // More aggressive scaling to guarantee 100% visibility (no overlap) as density increases
   const multiplier = 
     totalInColumn === 1 ? 1.25 : 
-    totalInColumn === 2 ? 1.10 : 
-    totalInColumn === 3 ? 0.92 : 
-    totalInColumn === 4 ? 0.80 : 0.68;
+    totalInColumn === 2 ? 0.95 :  // Fits 2 easily without touching
+    totalInColumn === 3 ? 0.70 :  // Scales down to fit 3 perfectly
+    totalInColumn === 4 ? 0.52 :  // Scales down significantly for 4
+    0.42;                         // Small enough to fit 5 per column with zero overlap
   
   const width = Math.round(baseW * multiplier);
   const height = Math.round(baseH * multiplier);
@@ -63,19 +64,18 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
   const rightItems = displayList.filter((_, i) => i % 2 !== 0);
 
   const getPositionStyle = (colIndex: number, totalInCol: number, isLeft: boolean) => {
-    // Dynamic horizontal spacing: wider staggered spread when dense to prevent bunching
-    const xBase = isLeft ? 17 : 83;
-    const spreadMultiplier = totalInCol >= 4 ? 1.3 : 1.0;
-    const xOffset = (colIndex % 2 === 0 ? (isLeft ? -5 : 5) : (isLeft ? 5 : -5)) * spreadMultiplier;
+    // Keep a subtle zigzag, but pull it slightly tighter so scaled-down images don't drift too far
+    const xBase = isLeft ? 15 : 85;
+    const xOffset = colIndex % 2 === 0 ? (isLeft ? -3 : 3) : (isLeft ? 3 : -3);
     const x = xBase + xOffset;
 
     let y = 50;
     if (totalInCol === 1) {
       y = 50;
     } else {
-      // Dynamic vertical range: expands safely when more pictures are present
-      const startY = totalInCol >= 4 ? 18 : 22;
-      const endY = totalInCol >= 4 ? 82 : 78;
+      // Widen the vertical distribution when there are more items to maximize non-overlapping space
+      const startY = totalInCol >= 4 ? 12 : 18;
+      const endY = totalInCol >= 4 ? 88 : 82;
       y = startY + (colIndex / (totalInCol - 1)) * (endY - startY);
     }
 
