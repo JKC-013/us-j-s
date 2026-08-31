@@ -25,9 +25,9 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
     case 4: return { leftCols: [2], rightCols: [2] };
     case 5: return { leftCols: [3], rightCols: [2] };
     case 6: return { leftCols: [3], rightCols: [3] };
-    case 7: return { leftCols: [3, 1], rightCols: [3] };
-    case 8: return { leftCols: [3, 1], rightCols: [1, 3] };
-    case 9: return { leftCols: [3, 1], rightCols: [3, 2] };
+    case 7: return { leftCols: [3, 2], rightCols: [2] };
+    case 8: return { leftCols: [3, 2], rightCols: [3] };
+    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };
     case 10: return { leftCols: [3, 2], rightCols: [2, 3] };
     default: {
       const half = Math.ceil(count / 2);
@@ -35,6 +35,12 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
     }
   }
 }
+
+// Deterministic random rotation between 10 to 30 degrees (left or right)
+const getTilt = (index: number) => {
+  const angles = [12, -24, 18, -15, 28, -21, 14, -29, 22, -11, 26, -17, 19, -25];
+  return angles[index % angles.length];
+};
 
 export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
   const displayList = useMemo(() => mediaList.slice(0, 10), [mediaList]);
@@ -45,68 +51,64 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
     [totalImages]
   );
 
-  // Calculate maximum vertical slots per side
   const maxLeftSlots = Math.max(...leftCols, 1);
   const maxRightSlots = Math.max(...rightCols, 0);
-
-  // Determines half-step offset for the shorter column
-  const leftTotalCapacity = leftCols.reduce((a, b) => a + b, 0);
-  const rightTotalCapacity = rightCols.reduce((a, b) => a + b, 0);
-  
-  const leftIsShorter = leftTotalCapacity < rightTotalCapacity;
-  const rightIsShorter = rightTotalCapacity < leftTotalCapacity;
 
   return (
     <div className="absolute inset-x-0 top-[104px] bottom-0 overflow-hidden bg-transparent">
       {/* Background radial overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.40),transparent_35%)] pointer-events-none" />
 
-      {/* Container with strict 10px margins */}
-      <div className="relative w-full h-full p-[10px] flex justify-between items-center pointer-events-none">
+      {/* Container with strict 20px margins */}
+      <div className="relative w-full h-full p-[20px] flex justify-between items-center pointer-events-none">
         
         {/* LEFT SIDE CONTAINER */}
-        <div className="h-full flex-1 flex justify-around items-center gap-2 pointer-events-auto">
-          {leftCols.map((slotsInCol, colIdx) => {
-            const isColumnShorter = leftIsShorter || slotsInCol < maxLeftSlots;
+        <div className="h-full flex-1 flex justify-center items-center pointer-events-auto">
+          {/* Inner wrapper aligns children to top so the half-step calculation is exact */}
+          <div className="flex justify-center items-start gap-[10px] w-full">
+            {leftCols.map((slotsInCol, colIdx) => {
+              const isColumnShorter = slotsInCol < maxLeftSlots;
 
-            return (
-              <div
-                key={`left-col-${colIdx}`}
-                className="h-full flex-1 flex flex-col justify-around items-center"
-                style={{
-                  paddingTop: isColumnShorter ? "12%" : "0px", // Half-step offset down
-                }}
-              >
-                {Array.from({ length: slotsInCol }).map((_, slotIdx) => {
-                  const imageIdx = (colIdx * slotsInCol + slotIdx) * 2;
-                  const media = displayList[imageIdx];
-                  if (!media) return null;
+              return (
+                <div
+                  key={`left-col-${colIdx}`}
+                  className="flex-1 flex flex-col items-center gap-[10px]"
+                  style={{
+                    // 50% of the column width perfectly equals a half-step drop for square slots
+                    marginTop: isColumnShorter ? "50%" : "0px",
+                  }}
+                >
+                  {Array.from({ length: slotsInCol }).map((_, slotIdx) => {
+                    const imageIdx = (colIdx * slotsInCol + slotIdx) * 2;
+                    const media = displayList[imageIdx];
+                    if (!media) return null;
 
-                  return (
-                    <motion.div
-                      key={`left-img-${imageIdx}`}
-                      className="relative w-full aspect-square max-h-[280px] max-w-[280px] rounded-[20px] overflow-hidden shadow-lg border-none outline-none"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.8, delay: imageIdx * 0.08 }}
-                    >
-                      <Image
-                        src={media.url}
-                        alt="Memory"
-                        fill
-                        className="object-cover"
-                      />
-                    </motion.div>
-                  );
-                })}
-              </div>
-            );
-          })}
+                    return (
+                      <motion.div
+                        key={`left-img-${imageIdx}`}
+                        className="relative w-full aspect-square max-h-[280px] max-w-[280px] rounded-[20px] overflow-hidden shadow-lg bg-black/5"
+                        initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
+                        animate={{ opacity: 1, scale: 1, rotate: getTilt(imageIdx) }}
+                        transition={{ duration: 0.8, delay: imageIdx * 0.08 }}
+                      >
+                        <Image
+                          src={media.url}
+                          alt="Memory"
+                          fill
+                          className="object-contain p-1"
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* CENTRAL TEXT BOX WITH 10px CLEARANCE */}
+        {/* CENTRAL TEXT BOX WITH 20px CLEARANCE */}
         <motion.div
-          className="relative z-50 pointer-events-auto mx-[10px] flex-shrink-0"
+          className="relative z-50 pointer-events-auto mx-[20px] flex-shrink-0"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: displayList.length * 0.05 }}
@@ -121,43 +123,45 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
         </motion.div>
 
         {/* RIGHT SIDE CONTAINER */}
-        <div className="h-full flex-1 flex justify-around items-center gap-2 pointer-events-auto">
-          {rightCols.map((slotsInCol, colIdx) => {
-            const isColumnShorter = rightIsShorter || slotsInCol < maxRightSlots;
+        <div className="h-full flex-1 flex justify-center items-center pointer-events-auto">
+          <div className="flex justify-center items-start gap-[10px] w-full">
+            {rightCols.map((slotsInCol, colIdx) => {
+              const isColumnShorter = slotsInCol < maxRightSlots;
 
-            return (
-              <div
-                key={`right-col-${colIdx}`}
-                className="h-full flex-1 flex flex-col justify-around items-center"
-                style={{
-                  paddingTop: isColumnShorter ? "12%" : "0px", // Half-step offset down
-                }}
-              >
-                {Array.from({ length: slotsInCol }).map((_, slotIdx) => {
-                  const imageIdx = (colIdx * slotsInCol + slotIdx) * 2 + 1;
-                  const media = displayList[imageIdx];
-                  if (!media) return null;
+              return (
+                <div
+                  key={`right-col-${colIdx}`}
+                  className="flex-1 flex flex-col items-center gap-[10px]"
+                  style={{
+                    marginTop: isColumnShorter ? "50%" : "0px", 
+                  }}
+                >
+                  {Array.from({ length: slotsInCol }).map((_, slotIdx) => {
+                    const imageIdx = (colIdx * slotsInCol + slotIdx) * 2 + 1;
+                    const media = displayList[imageIdx];
+                    if (!media) return null;
 
-                  return (
-                    <motion.div
-                      key={`right-img-${imageIdx}`}
-                      className="relative w-full aspect-square max-h-[280px] max-w-[280px] rounded-[20px] overflow-hidden shadow-lg border-none outline-none"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.8, delay: imageIdx * 0.08 }}
-                    >
-                      <Image
-                        src={media.url}
-                        alt="Memory"
-                        fill
-                        className="object-cover"
-                      />
-                    </motion.div>
-                  );
-                })}
-              </div>
-            );
-          })}
+                    return (
+                      <motion.div
+                        key={`right-img-${imageIdx}`}
+                        className="relative w-full aspect-square max-h-[280px] max-w-[280px] rounded-[20px] overflow-hidden shadow-lg bg-black/5"
+                        initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
+                        animate={{ opacity: 1, scale: 1, rotate: getTilt(imageIdx) }}
+                        transition={{ duration: 0.8, delay: imageIdx * 0.08 }}
+                      >
+                        <Image
+                          src={media.url}
+                          alt="Memory"
+                          fill
+                          className="object-contain p-1"
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
       </div>
