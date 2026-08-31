@@ -16,7 +16,7 @@ interface LayoutEngineProps {
   layoutSeed?: string;
 }
 
-// Determines the column distribution across [Left Side, Right Side]
+// 1. Fixed the layout mapping per your exact instructions
 function getColumnDistribution(count: number): { leftCols: number[]; rightCols: number[] } {
   switch (count) {
     case 1: return { leftCols: [1], rightCols: [] };
@@ -36,7 +36,20 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
   }
 }
 
-// Deterministic random rotation between 10 to 30 degrees (left or right)
+// Safe array chunking to prevent out-of-bounds indexing
+function chunkArray<T>(arr: T[], sizes: number[]): T[][] {
+  const result: T[][] = [];
+  let index = 0;
+  for (const size of sizes) {
+    if (size > 0) {
+      result.push(arr.slice(index, index + size));
+      index += size;
+    }
+  }
+  return result;
+}
+
+// Deterministic random rotation between 10 to 30 degrees
 const getTilt = (index: number) => {
   const angles = [12, -24, 18, -15, 28, -21, 14, -29, 22, -11, 26, -17, 19, -25];
   return angles[index % angles.length];
@@ -46,67 +59,84 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
   const displayList = useMemo(() => mediaList.slice(0, 10), [mediaList]);
   const totalImages = displayList.length;
 
+  // Track the original global index for animations and tilting
+  const indexedList = useMemo(
+    () => displayList.map((media, i) => ({ media, globalIndex: i })),
+    [displayList]
+  );
+
   const { leftCols, rightCols } = useMemo(
     () => getColumnDistribution(totalImages),
     [totalImages]
   );
 
-  const maxLeftSlots = Math.max(...leftCols, 1);
-  const maxRightSlots = Math.max(...rightCols, 0);
+  const leftMax = leftCols.reduce((a, b) => a + b, 0);
+  const rightMax = rightCols.reduce((a, b) => a + b, 0);
+
+  // 2. Distribute images chronologically up to the capacity of each side, 
+  // preventing the "missing images" bug on asymmetrical layouts (like 3|2 vs 2)
+  const leftItems = [];
+  const rightItems = [];
+  for (let i = 0; i < totalImages; i++) {
+    const item = indexedList[i];
+    if (i % 2 === 0) {
+      if (leftItems.length < leftMax) leftItems.push(item);
+      else rightItems.push(item);
+    } else {
+      if (rightItems.length < rightMax) rightItems.push(item);
+      else leftItems.push(item);
+    }
+  }
+
+  const leftChunks = chunkArray(leftItems, leftCols);
+  const rightChunks = chunkArray(rightItems, rightCols);
+
+  // Determine the tallest column overall to calculate flex spacer offsets perfectly
+  const globalMaxSlots = Math.max(...leftCols, ...rightCols, 1);
 
   return (
     <div className="absolute inset-x-0 top-[104px] bottom-0 overflow-hidden bg-transparent">
       {/* Background radial overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.40),transparent_35%)] pointer-events-none" />
 
-      {/* Container with strict 20px margins */}
-      <div className="relative w-full h-full p-[20px] flex justify-between items-center pointer-events-none">
+      {/* 3. Strict 20px boundary margin applied around the entire screen */}
+      <div className="relative w-full h-full p-[20px] flex justify-between items-center pointer-events-none overflow-hidden">
         
         {/* LEFT SIDE CONTAINER */}
-        <div className="h-full flex-1 flex justify-center items-center pointer-events-auto">
-          {/* Inner wrapper aligns children to top so the half-step calculation is exact */}
-          <div className="flex justify-center items-start gap-[10px] w-full">
-            {leftCols.map((slotsInCol, colIdx) => {
-              const isColumnShorter = slotsInCol < maxLeftSlots;
+        <div className="h-full flex-1 flex justify-center items-center gap-[10px] min-w-0 pointer-events-auto">
+          {leftChunks.map((chunk, colIdx) => {
+            const slotsInCol = leftCols[colIdx];
+            
+            // Mathematically precise flex space distribution for the half-step stagger
+            const diff = globalMaxSlots - slotsInCol;
+            const topSpacer = diff > 0 ? 0.5 : 0;
+            const bottomSpacer = diff > 0 ? diff - 0.5 : 0;
 
-              return (
-                <div
-                  key={`left-col-${colIdx}`}
-                  className="flex-1 flex flex-col items-center gap-[10px]"
-                  style={{
-                    // 50% of the column width perfectly equals a half-step drop for square slots
-                    marginTop: isColumnShorter ? "50%" : "0px",
-                  }}
-                >
-                  {Array.from({ length: slotsInCol }).map((_, slotIdx) => {
-                    const imageIdx = (colIdx * slotsInCol + slotIdx) * 2;
-                    const media = displayList[imageIdx];
-                    if (!media) return null;
-
-                    return (
-                      <motion.div
-                        key={`left-img-${imageIdx}`}
-                        className="relative w-full aspect-square max-h-[280px] max-w-[280px] rounded-[20px] overflow-hidden shadow-lg bg-black/5"
-                        initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
-                        animate={{ opacity: 1, scale: 1, rotate: getTilt(imageIdx) }}
-                        transition={{ duration: 0.8, delay: imageIdx * 0.08 }}
-                      >
-                        <Image
-                          src={media.url}
-                          alt="Memory"
-                          fill
-                          className="object-contain p-1"
-                        />
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
+            return (
+              <div key={`left-col-${colIdx}`} className="h-full flex-1 flex flex-col items-center gap-[10px] min-w-0">
+                {topSpacer > 0 && <div style={{ flex: topSpacer }} />}
+                
+                {chunk.map((item) => (
+                  <div key={`l-img-${item.globalIndex}`} className="flex-1 w-full min-h-0 flex items-center justify-center">
+                    <motion.div
+                      className="relative rounded-[20px] overflow-hidden shadow-lg bg-black/5 flex-shrink-0"
+                      style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', aspectRatio: '1 / 1' }}
+                      initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
+                      animate={{ opacity: 1, scale: 1, rotate: getTilt(item.globalIndex) }}
+                      transition={{ duration: 0.8, delay: item.globalIndex * 0.08 }}
+                    >
+                      <Image src={item.media.url} alt="Memory" fill className="object-contain p-[10px]" />
+                    </motion.div>
+                  </div>
+                ))}
+                
+                {bottomSpacer > 0 && <div style={{ flex: bottomSpacer }} />}
+              </div>
+            );
+          })}
         </div>
 
-        {/* CENTRAL TEXT BOX WITH 20px CLEARANCE */}
+        {/* CENTRAL TEXT BOX WITH ADDITIONAL 20px CLEARANCE */}
         <motion.div
           className="relative z-50 pointer-events-auto mx-[20px] flex-shrink-0"
           initial={{ opacity: 0, y: 20 }}
@@ -123,45 +153,36 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
         </motion.div>
 
         {/* RIGHT SIDE CONTAINER */}
-        <div className="h-full flex-1 flex justify-center items-center pointer-events-auto">
-          <div className="flex justify-center items-start gap-[10px] w-full">
-            {rightCols.map((slotsInCol, colIdx) => {
-              const isColumnShorter = slotsInCol < maxRightSlots;
+        <div className="h-full flex-1 flex justify-center items-center gap-[10px] min-w-0 pointer-events-auto">
+          {rightChunks.map((chunk, colIdx) => {
+            const slotsInCol = rightCols[colIdx];
+            
+            const diff = globalMaxSlots - slotsInCol;
+            const topSpacer = diff > 0 ? 0.5 : 0;
+            const bottomSpacer = diff > 0 ? diff - 0.5 : 0;
 
-              return (
-                <div
-                  key={`right-col-${colIdx}`}
-                  className="flex-1 flex flex-col items-center gap-[10px]"
-                  style={{
-                    marginTop: isColumnShorter ? "50%" : "0px", 
-                  }}
-                >
-                  {Array.from({ length: slotsInCol }).map((_, slotIdx) => {
-                    const imageIdx = (colIdx * slotsInCol + slotIdx) * 2 + 1;
-                    const media = displayList[imageIdx];
-                    if (!media) return null;
-
-                    return (
-                      <motion.div
-                        key={`right-img-${imageIdx}`}
-                        className="relative w-full aspect-square max-h-[280px] max-w-[280px] rounded-[20px] overflow-hidden shadow-lg bg-black/5"
-                        initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
-                        animate={{ opacity: 1, scale: 1, rotate: getTilt(imageIdx) }}
-                        transition={{ duration: 0.8, delay: imageIdx * 0.08 }}
-                      >
-                        <Image
-                          src={media.url}
-                          alt="Memory"
-                          fill
-                          className="object-contain p-1"
-                        />
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
+            return (
+              <div key={`right-col-${colIdx}`} className="h-full flex-1 flex flex-col items-center gap-[10px] min-w-0">
+                {topSpacer > 0 && <div style={{ flex: topSpacer }} />}
+                
+                {chunk.map((item) => (
+                  <div key={`r-img-${item.globalIndex}`} className="flex-1 w-full min-h-0 flex items-center justify-center">
+                    <motion.div
+                      className="relative rounded-[20px] overflow-hidden shadow-lg bg-black/5 flex-shrink-0"
+                      style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', aspectRatio: '1 / 1' }}
+                      initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
+                      animate={{ opacity: 1, scale: 1, rotate: getTilt(item.globalIndex) }}
+                      transition={{ duration: 0.8, delay: item.globalIndex * 0.08 }}
+                    >
+                      <Image src={item.media.url} alt="Memory" fill className="object-contain p-[10px]" />
+                    </motion.div>
+                  </div>
+                ))}
+                
+                {bottomSpacer > 0 && <div style={{ flex: bottomSpacer }} />}
+              </div>
+            );
+          })}
         </div>
 
       </div>
