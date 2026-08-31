@@ -16,7 +16,6 @@ interface LayoutEngineProps {
   layoutSeed?: string;
 }
 
-// 1. Precise, fixed distribution rules matching your exact requirements
 function getColumnDistribution(count: number): { leftCols: number[]; rightCols: number[] } {
   switch (count) {
     case 1: return { leftCols: [1], rightCols: [] };
@@ -28,7 +27,7 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
     case 7: return { leftCols: [3, 2], rightCols: [2] };       // 3|2 and 2
     case 8: return { leftCols: [3, 2], rightCols: [3] };       // 3|2 and 3
     case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 3|2 and 2|2
-    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 3|2 and 2|3
+    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 3|2 and 2|3 (Fixed!)
     default: {
       const half = Math.ceil(count / 2);
       return { leftCols: [half], rightCols: [count - half] };
@@ -36,7 +35,6 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
   }
 }
 
-// Deterministic random rotation between 10 to 30 degrees
 const getTilt = (index: number) => {
   const angles = [12, -24, 18, -15, 28, -21, 14, -29, 22, -11, 26, -17, 19, -25];
   return angles[index % angles.length];
@@ -51,13 +49,10 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
     [totalImages]
   );
 
-  // 2. Safely slice the exact chunk sizes for left and right sides without skipping indexes
   const leftTotalCount = leftCols.reduce((a, b) => a + b, 0);
-  
   const leftMedia = displayList.slice(0, leftTotalCount);
   const rightMedia = displayList.slice(leftTotalCount, totalImages);
 
-  // Helper to chunk arrays based on column slot configurations
   const createChunks = (mediaArray: typeof displayList, colsConfig: number[]) => {
     let pointer = 0;
     return colsConfig.map((slotCount) => {
@@ -72,16 +67,25 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
   const globalMaxSlots = Math.max(...leftCols, ...rightCols, 1);
 
+  // Dynamic Scale Bonus: If a side has fewer total slots/pictures than the opposite side, 
+  // we dynamically scale its images larger so they fill the available space naturally.
+  const leftTotalSlots = leftCols.reduce((a, b) => a + b, 0);
+  const rightTotalSlots = rightCols.reduce((a, b) => a + b, 0);
+
+  const leftScaleBonus = rightTotalSlots > leftTotalSlots ? Math.min(1.4, 1 + (rightTotalSlots - leftTotalSlots) * 0.15) : 1.0;
+  const rightScaleBonus = leftTotalSlots > rightTotalSlots ? Math.min(1.4, 1 + (leftTotalSlots - rightTotalSlots) * 0.15) : 1.0;
+
   return (
     <div className="absolute inset-x-0 top-[104px] bottom-0 overflow-hidden bg-transparent">
-      {/* Background radial overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.40),transparent_35%)] pointer-events-none" />
 
-      {/* Strict 20px boundary margin applied around the entire screen */}
       <div className="relative w-full h-full p-[20px] flex justify-between items-center pointer-events-none overflow-hidden">
         
         {/* LEFT SIDE CONTAINER */}
-        <div className="h-full flex-1 flex justify-center items-center gap-[10px] min-w-0 pointer-events-auto">
+        <div 
+          className="h-full flex-1 flex justify-center items-center gap-[10px] min-w-0 pointer-events-auto"
+          style={{ transform: `scale(${leftScaleBonus})`, transformOrigin: 'center' }}
+        >
           {leftChunks.map((chunk, colIdx) => {
             const slotsInCol = leftCols[colIdx];
             const diff = globalMaxSlots - slotsInCol;
@@ -93,14 +97,12 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
                 {topSpacer > 0 && <div style={{ flex: topSpacer }} />}
                 
                 {chunk.map((media, slotIdx) => {
-                  // Calculate absolute global index for animation and tilting sync
                   let globalIndex = 0;
                   for (let i = 0; i < colIdx; i++) globalIndex += leftCols[i];
                   globalIndex += slotIdx;
 
                   return (
                     <div key={`l-slot-${globalIndex}`} className="flex-1 w-full min-h-0 flex items-center justify-center">
-                      {/* Fixed aspect-square wrapper to prevent rectangular stretching */}
                       <div className="w-full aspect-square max-h-full flex items-center justify-center">
                         <motion.div
                           className="relative w-full h-full rounded-[20px] overflow-hidden shadow-lg bg-black/5"
@@ -138,7 +140,10 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
         </motion.div>
 
         {/* RIGHT SIDE CONTAINER */}
-        <div className="h-full flex-1 flex justify-center items-center gap-[10px] min-w-0 pointer-events-auto">
+        <div 
+          className="h-full flex-1 flex justify-center items-center gap-[10px] min-w-0 pointer-events-auto"
+          style={{ transform: `scale(${rightScaleBonus})`, transformOrigin: 'center' }}
+        >
           {rightChunks.map((chunk, colIdx) => {
             const slotsInCol = rightCols[colIdx];
             const diff = globalMaxSlots - slotsInCol;
