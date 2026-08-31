@@ -41,7 +41,7 @@ const getTilt = (index: number) => {
 };
 
 export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
-  // Dynamically slice up to the count matching our max supported layout (10)
+  // Allow up to 10 images to be processed fully
   const displayList = useMemo(() => mediaList.slice(0, 10), [mediaList]);
   const totalImages = displayList.length;
 
@@ -50,12 +50,10 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
     [totalImages]
   );
 
-  // Compute exact totals dynamically based on the active config array sums
   const leftTotalCount = leftCols.reduce((a, b) => a + b, 0);
   const rightTotalCount = rightCols.reduce((a, b) => a + b, 0);
   const expectedTotal = leftTotalCount + rightTotalCount;
 
-  // Slice precisely matching the dynamic configuration requirements
   const activeDisplayList = displayList.slice(0, expectedTotal);
   const leftMedia = activeDisplayList.slice(0, leftTotalCount);
   const rightMedia = activeDisplayList.slice(leftTotalCount, expectedTotal);
@@ -79,10 +77,8 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
   return (
     <div className="absolute inset-x-0 top-[104px] bottom-0 overflow-hidden bg-transparent">
-      {/* Background radial overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.40),transparent_35%)] pointer-events-none" />
 
-      {/* Strict 20px boundary margin applied around the entire screen */}
       <div className="relative w-full h-full p-[20px] flex justify-between items-center pointer-events-none overflow-hidden">
         
         {/* LEFT SIDE CONTAINER */}
