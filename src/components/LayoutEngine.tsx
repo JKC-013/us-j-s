@@ -24,10 +24,10 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
     case 4: return { leftCols: [2], rightCols: [2] };
     case 5: return { leftCols: [3], rightCols: [2] };
     case 6: return { leftCols: [3], rightCols: [3] };
-    case 7: return { leftCols: [3, 2], rightCols: [2] };       // 7 images: 3 | 2 and 2
-    case 8: return { leftCols: [2, 2], rightCols: [2, 2] };    // 8 images: 2 | 2 and 2 | 2
-    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 9 images: 3 | 2 and 2 | 2
-    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 10 images: 3 | 2 and 2 | 3
+    case 7: return { leftCols: [3, 2], rightCols: [2] };       // 7 images: [3, 2] | [2]
+    case 8: return { leftCols: [2, 2], rightCols: [2, 2] };    // 8 images: [2, 2] | [2, 2]
+    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 9 images: [3, 2] | [2, 2]
+    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 10 images: [3, 2] | [2, 3]
     default: {
       const half = Math.ceil(count / 2);
       return { leftCols: [half], rightCols: [count - half] };
@@ -41,9 +41,9 @@ const getTilt = (index: number) => {
 };
 
 export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
-  // Fix: Removed the restrictive slice(0, 10) that was clashing, and mapped directly to mediaList length up to 10
-  const totalImages = Math.min(mediaList.length, 10);
-  const displayList = useMemo(() => mediaList.slice(0, totalImages), [mediaList, totalImages]);
+  // Allow up to 10 items cleanly
+  const displayList = useMemo(() => mediaList.slice(0, 10), [mediaList]);
+  const totalImages = displayList.length;
 
   const { leftCols, rightCols } = useMemo(
     () => getColumnDistribution(totalImages),
@@ -52,9 +52,12 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
   const leftTotalCount = leftCols.reduce((a, b) => a + b, 0);
   const rightTotalCount = rightCols.reduce((a, b) => a + b, 0);
+  const expectedTotal = leftTotalCount + rightTotalCount;
 
-  const leftMedia = displayList.slice(0, leftTotalCount);
-  const rightMedia = displayList.slice(leftTotalCount, leftTotalCount + rightTotalCount);
+  // Fix: Ensure we slice up to the full expected length of the dynamic configuration
+  const activeDisplayList = displayList.slice(0, Math.max(totalImages, expectedTotal));
+  const leftMedia = activeDisplayList.slice(0, leftTotalCount);
+  const rightMedia = activeDisplayList.slice(leftTotalCount, leftTotalCount + rightTotalCount);
 
   const createChunks = (mediaArray: typeof displayList, colsConfig: number[]) => {
     let pointer = 0;
@@ -78,9 +81,9 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.40),transparent_35%)] pointer-events-none" />
 
       <div className="relative w-full h-full p-[20px] flex justify-between items-center pointer-events-none overflow-hidden">
-        
+
         {/* LEFT SIDE CONTAINER */}
-        <div 
+        <div
           className="h-full flex-1 flex justify-center items-center gap-[10px] min-w-0 pointer-events-auto"
           style={{ transform: `scale(${leftScaleBonus})`, transformOrigin: 'center' }}
         >
@@ -93,7 +96,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
             return (
               <div key={`left-col-${colIdx}`} className="h-full flex-1 flex flex-col items-center gap-[10px] min-w-0">
                 {topSpacer > 0 && <div style={{ flex: topSpacer }} />}
-                
+
                 {chunk.map((media, slotIdx) => {
                   let globalIndex = 0;
                   for (let i = 0; i < colIdx; i++) globalIndex += leftCols[i];
@@ -101,7 +104,9 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
                   return (
                     <div key={`l-slot-${globalIndex}`} className="flex-1 w-full min-h-0 flex items-center justify-center">
-                      <div className="w-full aspect-square max-h-full flex items-center justify-center">
+                      {/* FIX: size off the slot's height, not the column's width, so 3-row
+                          columns don't overflow their flex slot and clip/overlap neighbors */}
+                      <div className="h-full aspect-square max-w-full flex items-center justify-center">
                         <motion.div
                           className="relative w-full h-full aspect-square rounded-[20px] overflow-hidden shadow-lg bg-black/5"
                           initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
@@ -114,7 +119,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
                     </div>
                   );
                 })}
-                
+
                 {bottomSpacer > 0 && <div style={{ flex: bottomSpacer }} />}
               </div>
             );
@@ -126,7 +131,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
           className="relative z-50 pointer-events-auto mx-[20px] flex-shrink-0"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: displayList.length * 0.05 }}
+          transition={{ duration: 1, delay: activeDisplayList.length * 0.05 }}
         >
           <div className="h-[min(400px,46vh)] w-[min(360px,30vw)] max-w-[360px] glass-panel p-8">
             <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
@@ -138,7 +143,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
         </motion.div>
 
         {/* RIGHT SIDE CONTAINER */}
-        <div 
+        <div
           className="h-full flex-1 flex justify-center items-center gap-[10px] min-w-0 pointer-events-auto"
           style={{ transform: `scale(${rightScaleBonus})`, transformOrigin: 'center' }}
         >
@@ -151,7 +156,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
             return (
               <div key={`right-col-${colIdx}`} className="h-full flex-1 flex flex-col items-center gap-[10px] min-w-0">
                 {topSpacer > 0 && <div style={{ flex: topSpacer }} />}
-                
+
                 {chunk.map((media, slotIdx) => {
                   let globalIndex = leftTotalCount;
                   for (let i = 0; i < colIdx; i++) globalIndex += rightCols[i];
@@ -159,7 +164,8 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
                   return (
                     <div key={`r-slot-${globalIndex}`} className="flex-1 w-full min-h-0 flex items-center justify-center">
-                      <div className="w-full aspect-square max-h-full flex items-center justify-center">
+                      {/* FIX: same height-driven sizing as the left column */}
+                      <div className="h-full aspect-square max-w-full flex items-center justify-center">
                         <motion.div
                           className="relative w-full h-full aspect-square rounded-[20px] overflow-hidden shadow-lg bg-black/5"
                           initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
@@ -172,7 +178,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
                     </div>
                   );
                 })}
-                
+
                 {bottomSpacer > 0 && <div style={{ flex: bottomSpacer }} />}
               </div>
             );
