@@ -16,7 +16,6 @@ interface LayoutEngineProps {
   layoutSeed?: string;
 }
 
-// Updated column configurations matching your exact requested rules
 function getColumnDistribution(count: number): { leftCols: number[]; rightCols: number[] } {
   switch (count) {
     case 1: return { leftCols: [1], rightCols: [] };
@@ -42,6 +41,7 @@ const getTilt = (index: number) => {
 };
 
 export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
+  // Dynamically slice up to the count matching our max supported layout (10)
   const displayList = useMemo(() => mediaList.slice(0, 10), [mediaList]);
   const totalImages = displayList.length;
 
@@ -50,9 +50,15 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
     [totalImages]
   );
 
+  // Compute exact totals dynamically based on the active config array sums
   const leftTotalCount = leftCols.reduce((a, b) => a + b, 0);
-  const leftMedia = displayList.slice(0, leftTotalCount);
-  const rightMedia = displayList.slice(leftTotalCount, totalImages);
+  const rightTotalCount = rightCols.reduce((a, b) => a + b, 0);
+  const expectedTotal = leftTotalCount + rightTotalCount;
+
+  // Slice precisely matching the dynamic configuration requirements
+  const activeDisplayList = displayList.slice(0, expectedTotal);
+  const leftMedia = activeDisplayList.slice(0, leftTotalCount);
+  const rightMedia = activeDisplayList.slice(leftTotalCount, expectedTotal);
 
   const createChunks = (mediaArray: typeof displayList, colsConfig: number[]) => {
     let pointer = 0;
@@ -68,12 +74,8 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
   const globalMaxSlots = Math.max(...leftCols, ...rightCols, 1);
 
-  // Dynamic Scale Bonus: Automatically scales up images on the side with fewer total slots
-  const leftTotalSlots = leftCols.reduce((a, b) => a + b, 0);
-  const rightTotalSlots = rightCols.reduce((a, b) => a + b, 0);
-
-  const leftScaleBonus = rightTotalSlots > leftTotalSlots ? Math.min(1.45, 1 + (rightTotalSlots - leftTotalSlots) * 0.18) : 1.0;
-  const rightScaleBonus = leftTotalSlots > rightTotalSlots ? Math.min(1.45, 1 + (leftTotalSlots - rightTotalSlots) * 0.18) : 1.0;
+  const leftScaleBonus = rightTotalCount > leftTotalCount ? Math.min(1.45, 1 + (rightTotalCount - leftTotalCount) * 0.18) : 1.0;
+  const rightScaleBonus = leftTotalCount > rightTotalCount ? Math.min(1.45, 1 + (leftTotalCount - rightTotalCount) * 0.18) : 1.0;
 
   return (
     <div className="absolute inset-x-0 top-[104px] bottom-0 overflow-hidden bg-transparent">
@@ -105,7 +107,6 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
                   return (
                     <div key={`l-slot-${globalIndex}`} className="flex-1 w-full min-h-0 flex items-center justify-center">
-                      {/* Enforced pure square box */}
                       <div className="w-full aspect-square max-h-full flex items-center justify-center">
                         <motion.div
                           className="relative w-full h-full aspect-square rounded-[20px] overflow-hidden shadow-lg bg-black/5"
@@ -131,7 +132,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
           className="relative z-50 pointer-events-auto mx-[20px] flex-shrink-0"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: displayList.length * 0.05 }}
+          transition={{ duration: 1, delay: activeDisplayList.length * 0.05 }}
         >
           <div className="h-[min(400px,46vh)] w-[min(360px,30vw)] max-w-[360px] glass-panel p-8">
             <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
