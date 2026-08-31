@@ -24,10 +24,10 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
     case 4: return { leftCols: [2], rightCols: [2] };
     case 5: return { leftCols: [3], rightCols: [2] };
     case 6: return { leftCols: [3], rightCols: [3] };
-    case 7: return { leftCols: [3, 2], rightCols: [2] };       // 7 images: 3 | 2 and 2
-    case 8: return { leftCols: [2, 2], rightCols: [2, 2] };    // 8 images: 2 | 2 and 2 | 2
-    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 9 images: 3 | 2 and 2 | 2
-    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 10 images: 3 | 2 and 2 | 3
+    case 7: return { leftCols: [3, 2], rightCols: [2] };       // 7 images: [3, 2] | [2]
+    case 8: return { leftCols: [2, 2], rightCols: [2, 2] };    // 8 images: [2, 2] | [2, 2]
+    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 9 images: [3, 2] | [2, 2]
+    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 10 images: [3, 2] | [2, 3]
     default: {
       const half = Math.ceil(count / 2);
       return { leftCols: [half], rightCols: [count - half] };
@@ -41,7 +41,7 @@ const getTilt = (index: number) => {
 };
 
 export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
-  // Allow up to 10 images to be processed fully
+  // Allow up to 10 items cleanly
   const displayList = useMemo(() => mediaList.slice(0, 10), [mediaList]);
   const totalImages = displayList.length;
 
@@ -54,9 +54,10 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
   const rightTotalCount = rightCols.reduce((a, b) => a + b, 0);
   const expectedTotal = leftTotalCount + rightTotalCount;
 
-  const activeDisplayList = displayList.slice(0, expectedTotal);
+  // Fix: Ensure we slice up to the full expected length of the dynamic configuration
+  const activeDisplayList = displayList.slice(0, Math.max(totalImages, expectedTotal));
   const leftMedia = activeDisplayList.slice(0, leftTotalCount);
-  const rightMedia = activeDisplayList.slice(leftTotalCount, expectedTotal);
+  const rightMedia = activeDisplayList.slice(leftTotalCount, leftTotalCount + rightTotalCount);
 
   const createChunks = (mediaArray: typeof displayList, colsConfig: number[]) => {
     let pointer = 0;
