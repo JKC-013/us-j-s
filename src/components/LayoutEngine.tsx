@@ -24,10 +24,10 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
     case 4: return { leftCols: [2], rightCols: [2] };
     case 5: return { leftCols: [3], rightCols: [2] };
     case 6: return { leftCols: [3], rightCols: [3] };
-    case 7: return { leftCols: [3, 2], rightCols: [2] };       // 7 images: [3, 2] | [2]
-    case 8: return { leftCols: [2, 2], rightCols: [2, 2] };    // 8 images: [2, 2] | [2, 2]
-    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 9 images: [3, 2] | [2, 2]
-    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 10 images: [3, 2] | [2, 3]
+    case 7: return { leftCols: [3, 2], rightCols: [2] };       // 7 images: 3 | 2 and 2
+    case 8: return { leftCols: [2, 2], rightCols: [2, 2] };    // 8 images: 2 | 2 and 2 | 2
+    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 9 images: 3 | 2 and 2 | 2
+    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 10 images: 3 | 2 and 2 | 3
     default: {
       const half = Math.ceil(count / 2);
       return { leftCols: [half], rightCols: [count - half] };
@@ -41,9 +41,9 @@ const getTilt = (index: number) => {
 };
 
 export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
-  // Allow up to 10 items cleanly
-  const displayList = useMemo(() => mediaList.slice(0, 10), [mediaList]);
-  const totalImages = displayList.length;
+  // Fix: Removed the restrictive slice(0, 10) that was clashing, and mapped directly to mediaList length up to 10
+  const totalImages = Math.min(mediaList.length, 10);
+  const displayList = useMemo(() => mediaList.slice(0, totalImages), [mediaList, totalImages]);
 
   const { leftCols, rightCols } = useMemo(
     () => getColumnDistribution(totalImages),
@@ -52,12 +52,9 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
   const leftTotalCount = leftCols.reduce((a, b) => a + b, 0);
   const rightTotalCount = rightCols.reduce((a, b) => a + b, 0);
-  const expectedTotal = leftTotalCount + rightTotalCount;
 
-  // Fix: Ensure we slice up to the full expected length of the dynamic configuration
-  const activeDisplayList = displayList.slice(0, Math.max(totalImages, expectedTotal));
-  const leftMedia = activeDisplayList.slice(0, leftTotalCount);
-  const rightMedia = activeDisplayList.slice(leftTotalCount, leftTotalCount + rightTotalCount);
+  const leftMedia = displayList.slice(0, leftTotalCount);
+  const rightMedia = displayList.slice(leftTotalCount, leftTotalCount + rightTotalCount);
 
   const createChunks = (mediaArray: typeof displayList, colsConfig: number[]) => {
     let pointer = 0;
@@ -129,7 +126,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
           className="relative z-50 pointer-events-auto mx-[20px] flex-shrink-0"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: activeDisplayList.length * 0.05 }}
+          transition={{ duration: 1, delay: displayList.length * 0.05 }}
         >
           <div className="h-[min(400px,46vh)] w-[min(360px,30vw)] max-w-[360px] glass-panel p-8">
             <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
