@@ -71,7 +71,7 @@ export async function fetchGoogleDriveMedia(folderUrl: string) {
     const response = await drive.files.list({
       q: `'${folderId}' in parents and trashed = false and (mimeType contains 'image/' or mimeType contains 'video/')`,
       fields: 'files(id,mimeType,name,imageMediaMetadata(width,height),videoMediaMetadata(width,height))',
-      pageSize: 8,
+      pageSize: 10,
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
     });
