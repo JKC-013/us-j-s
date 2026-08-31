@@ -23,20 +23,21 @@ function CleanPicture({ media, totalInColumn }: { media: MediaProps; totalInColu
   else if (media.shape === "landscape") { baseW = 300; baseH = 210; }
   else if (media.shape === "panorama") { baseW = 360; baseH = 160; }
 
-  // More aggressive scaling to guarantee 100% visibility (no overlap) as density increases
+  // Scaled up for 90-100% visibility. 
+  // Because they interlace left/right now, they can be much bigger without blocking each other.
   const multiplier = 
-    totalInColumn === 1 ? 1.25 : 
-    totalInColumn === 2 ? 0.95 :  // Fits 2 easily without touching
-    totalInColumn === 3 ? 0.70 :  // Scales down to fit 3 perfectly
-    totalInColumn === 4 ? 0.52 :  // Scales down significantly for 4
-    0.42;                         // Small enough to fit 5 per column with zero overlap
+    totalInColumn === 1 ? 1.35 : 
+    totalInColumn === 2 ? 1.08 : 
+    totalInColumn === 3 ? 0.85 : 
+    totalInColumn === 4 ? 0.68 : 
+    0.55; // 5 items on one side fits cleanly with ~0-10% overlap
   
   const width = Math.round(baseW * multiplier);
   const height = Math.round(baseH * multiplier);
 
   return (
     <div 
-      className="relative overflow-hidden rounded-[20px] shadow-lg"
+      className="relative overflow-hidden rounded-[20px] shadow-xl"
       style={{
         width: `${width}px`,
         height: `${height}px`,
@@ -59,27 +60,33 @@ function CleanPicture({ media, totalInColumn }: { media: MediaProps; totalInColu
 
 export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps) {
   const displayList = mediaList.slice(0, 10);
+  const totalItems = displayList.length;
 
-  const leftItems = displayList.filter((_, i) => i % 2 === 0);
-  const rightItems = displayList.filter((_, i) => i % 2 !== 0);
+  const getPositionStyle = (index: number, total: number) => {
+    // Alternate sides: Evens on Left, Odds on Right
+    const isLeft = index % 2 === 0;
+    
+    // Side index tracks which number this image is ON ITS OWN SIDE (0, 1, 2, etc.)
+    const sideIndex = Math.floor(index / 2);
 
-  const getPositionStyle = (colIndex: number, totalInCol: number, isLeft: boolean) => {
-    // Keep a subtle zigzag, but pull it slightly tighter so scaled-down images don't drift too far
+    // Keep horizontal zigzag tight
     const xBase = isLeft ? 15 : 85;
-    const xOffset = colIndex % 2 === 0 ? (isLeft ? -3 : 3) : (isLeft ? 3 : -3);
+    const xOffset = sideIndex % 2 === 0 ? (isLeft ? -3 : 3) : (isLeft ? 3 : -3);
     const x = xBase + xOffset;
 
     let y = 50;
-    if (totalInCol === 1) {
+    if (total === 1) {
       y = 50;
     } else {
-      // Widen the vertical distribution when there are more items to maximize non-overlapping space
-      const startY = totalInCol >= 4 ? 12 : 18;
-      const endY = totalInCol >= 4 ? 88 : 82;
-      y = startY + (colIndex / (totalInCol - 1)) * (endY - startY);
+      // By calculating Y based on the GLOBAL index rather than the column index, 
+      // Image 2 (Right) automatically positions itself halfway below Image 1 (Left),
+      // creating a perfect alternating staircase without needing to skip rows.
+      const startY = total >= 6 ? 12 : 18;
+      const endY = total >= 6 ? 88 : 82;
+      y = startY + (index / (total - 1)) * (endY - startY);
     }
 
-    const rotate = (colIndex % 2 === 0 ? 1 : -1) * (2 + (colIndex % 3) * 2);
+    const rotate = (index % 2 === 0 ? 1 : -1) * (2 + (index % 3) * 2);
 
     return {
       top: `${y}%`,
@@ -95,7 +102,7 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
       <div className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none overflow-hidden">
         {Array.from({ length: 12 }).map((_, i) => (
           <div
-            key={i}
+            key={`ambient-${i}`}
             className="absolute rounded-full bg-[rgba(211,189,247,0.16)] blur-sm"
             style={{
               width: `${12 + (i % 4) * 6}px`,
@@ -108,38 +115,26 @@ export function LayoutEngine({ text, mediaList, layoutSeed }: LayoutEngineProps)
         ))}
       </div>
 
-      {leftItems.map((media, colIndex) => {
-        const style = getPositionStyle(colIndex, leftItems.length, true);
-        const globalIndex = colIndex * 2;
+      {/* Render ALL images in a single loop based on their global staggered index */}
+      {displayList.map((media, index) => {
+        const style = getPositionStyle(index, totalItems);
+        const isLeft = index % 2 === 0;
+        
+        // Tells the picture component how many are sharing its specific side of the screen
+        const totalOnThisSide = isLeft 
+          ? Math.ceil(totalItems / 2) 
+          : Math.floor(totalItems / 2);
 
         return (
           <motion.div
-            key={`left-${globalIndex}`}
+            key={`media-${index}`}
             className="absolute z-20 pointer-events-auto"
             style={style as any}
             initial={{ opacity: 0, filter: 'blur(10px)' }}
             animate={{ opacity: 1, filter: 'blur(0px)' }}
-            transition={{ duration: 1.2, delay: globalIndex * 0.1, ease: "easeOut" }}
+            transition={{ duration: 1.2, delay: index * 0.1, ease: "easeOut" }}
           >
-            <CleanPicture media={media} totalInColumn={leftItems.length} />
-          </motion.div>
-        );
-      })}
-
-      {rightItems.map((media, colIndex) => {
-        const style = getPositionStyle(colIndex, rightItems.length, false);
-        const globalIndex = colIndex * 2 + 1;
-
-        return (
-          <motion.div
-            key={`right-${globalIndex}`}
-            className="absolute z-20 pointer-events-auto"
-            style={style as any}
-            initial={{ opacity: 0, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, filter: 'blur(0px)' }}
-            transition={{ duration: 1.2, delay: globalIndex * 0.1, ease: "easeOut" }}
-          >
-            <CleanPicture media={media} totalInColumn={rightItems.length} />
+            <CleanPicture media={media} totalInColumn={totalOnThisSide} />
           </motion.div>
         );
       })}
