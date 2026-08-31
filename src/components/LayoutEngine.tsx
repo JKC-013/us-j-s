@@ -16,6 +16,7 @@ interface LayoutEngineProps {
   layoutSeed?: string;
 }
 
+// Updated column configurations matching your exact requested rules
 function getColumnDistribution(count: number): { leftCols: number[]; rightCols: number[] } {
   switch (count) {
     case 1: return { leftCols: [1], rightCols: [] };
@@ -24,10 +25,10 @@ function getColumnDistribution(count: number): { leftCols: number[]; rightCols: 
     case 4: return { leftCols: [2], rightCols: [2] };
     case 5: return { leftCols: [3], rightCols: [2] };
     case 6: return { leftCols: [3], rightCols: [3] };
-    case 7: return { leftCols: [3, 2], rightCols: [2] };       // 3|2 and 2
-    case 8: return { leftCols: [3, 2], rightCols: [3] };       // 3|2 and 3
-    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 3|2 and 2|2
-    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 3|2 and 2|3 (Fixed!)
+    case 7: return { leftCols: [3, 2], rightCols: [2] };       // 7 images: 3 | 2 and 2
+    case 8: return { leftCols: [2, 2], rightCols: [2, 2] };    // 8 images: 2 | 2 and 2 | 2
+    case 9: return { leftCols: [3, 2], rightCols: [2, 2] };    // 9 images: 3 | 2 and 2 | 2
+    case 10: return { leftCols: [3, 2], rightCols: [2, 3] };   // 10 images: 3 | 2 and 2 | 3
     default: {
       const half = Math.ceil(count / 2);
       return { leftCols: [half], rightCols: [count - half] };
@@ -67,18 +68,19 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
   const globalMaxSlots = Math.max(...leftCols, ...rightCols, 1);
 
-  // Dynamic Scale Bonus: If a side has fewer total slots/pictures than the opposite side, 
-  // we dynamically scale its images larger so they fill the available space naturally.
+  // Dynamic Scale Bonus: Automatically scales up images on the side with fewer total slots
   const leftTotalSlots = leftCols.reduce((a, b) => a + b, 0);
   const rightTotalSlots = rightCols.reduce((a, b) => a + b, 0);
 
-  const leftScaleBonus = rightTotalSlots > leftTotalSlots ? Math.min(1.4, 1 + (rightTotalSlots - leftTotalSlots) * 0.15) : 1.0;
-  const rightScaleBonus = leftTotalSlots > rightTotalSlots ? Math.min(1.4, 1 + (leftTotalSlots - rightTotalSlots) * 0.15) : 1.0;
+  const leftScaleBonus = rightTotalSlots > leftTotalSlots ? Math.min(1.45, 1 + (rightTotalSlots - leftTotalSlots) * 0.18) : 1.0;
+  const rightScaleBonus = leftTotalSlots > rightTotalSlots ? Math.min(1.45, 1 + (leftTotalSlots - rightTotalSlots) * 0.18) : 1.0;
 
   return (
     <div className="absolute inset-x-0 top-[104px] bottom-0 overflow-hidden bg-transparent">
+      {/* Background radial overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.55),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.40),transparent_35%)] pointer-events-none" />
 
+      {/* Strict 20px boundary margin applied around the entire screen */}
       <div className="relative w-full h-full p-[20px] flex justify-between items-center pointer-events-none overflow-hidden">
         
         {/* LEFT SIDE CONTAINER */}
@@ -103,9 +105,10 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
 
                   return (
                     <div key={`l-slot-${globalIndex}`} className="flex-1 w-full min-h-0 flex items-center justify-center">
+                      {/* Enforced pure square box */}
                       <div className="w-full aspect-square max-h-full flex items-center justify-center">
                         <motion.div
-                          className="relative w-full h-full rounded-[20px] overflow-hidden shadow-lg bg-black/5"
+                          className="relative w-full h-full aspect-square rounded-[20px] overflow-hidden shadow-lg bg-black/5"
                           initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
                           animate={{ opacity: 1, scale: 1, rotate: getTilt(globalIndex) }}
                           transition={{ duration: 0.8, delay: globalIndex * 0.08 }}
@@ -163,7 +166,7 @@ export function LayoutEngine({ text, mediaList }: LayoutEngineProps) {
                     <div key={`r-slot-${globalIndex}`} className="flex-1 w-full min-h-0 flex items-center justify-center">
                       <div className="w-full aspect-square max-h-full flex items-center justify-center">
                         <motion.div
-                          className="relative w-full h-full rounded-[20px] overflow-hidden shadow-lg bg-black/5"
+                          className="relative w-full h-full aspect-square rounded-[20px] overflow-hidden shadow-lg bg-black/5"
                           initial={{ opacity: 0, scale: 0.9, rotate: 0 }}
                           animate={{ opacity: 1, scale: 1, rotate: getTilt(globalIndex) }}
                           transition={{ duration: 0.8, delay: globalIndex * 0.08 }}
